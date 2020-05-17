@@ -2,7 +2,7 @@
 
 Bu programın ve defterin amacı daha sonra çeşitli NLP ve görselleştirme projelerinde kullanılmak üzere TBMM Genel Oturum tutanaklarının indirilmesi ve kaydedilmesi işlemlerini göstermektir. 
 
-İndirilmiş tutanaklar oturumun gerçekleştiği günün tarihi ile adlandırılmış olarak _tutanaklar_ klasörünün içindedir.
+İndirilmiş tutanaklar oturumun gerçekleştiği günün tarihi ile adlandırılmış olarak __tutanaklar__ klasörünün içindedir.
 
 
 ```python
