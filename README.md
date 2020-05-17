@@ -1,4 +1,4 @@
-# TBMM Oturum Tutanaklarının BeautifulSoup4 ile indirilmesi
+# TBMM Genel Kurul Tutanaklarının BeautifulSoup4 ile indirilmesi
 
 Bu programın ve defterin amacı daha sonra çeşitli NLP ve görselleştirme projelerinde kullanılmak üzere TBMM Genel Oturum tutanaklarının indirilmesi ve kaydedilmesi işlemlerini göstermektir. 
 
