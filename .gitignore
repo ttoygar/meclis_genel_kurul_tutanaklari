@@ -1,0 +1,24 @@
+# Go derleme çıktıları
+/guncelle
+/guncelle.exe
+/crawler/crawler
+/crawler/crawler.exe
+*~
+*.test
+*.out
+
+# Geliştirme önbelleği (-cache tutanak_cache)
+*_cache/
+
+# Betiğin yarıda kalan atomik yazımları
+*.tmp
+
+# Editör / işletim sistemi
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/

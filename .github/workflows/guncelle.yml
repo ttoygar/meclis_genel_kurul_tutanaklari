@@ -1,0 +1,71 @@
+name: Tutanakları güncelle
+
+on:
+  schedule:
+    - cron: '30 3 * * *' # her gün 03:30 UTC (06:30 Türkiye)
+
+  # Actions sekmesinden elle çalıştırmak için.
+  workflow_dispatch:
+    inputs:
+      sure_dk:
+        description: 'Kaç dakika sonra yeni işe başlamasın (ilk doldurma uzun sürer)'
+        default: '300'
+      release:
+        description: 'html/docx/pdf kaynaklarını Release''lere yükle'
+        type: boolean
+        default: true
+
+# Uzun süren bir çalıştırma bir sonrakiyle çakışmasın.
+concurrency:
+  group: guncelle-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # commit + release
+
+jobs:
+  guncelle:
+    runs-on: ubuntu-latest
+    # Normal günlük çalıştırma birkaç dakika sürer. İlk doldurmada betik -sure-dk
+    # dolunca yeni işe başlamaz ve kaldığı yeri kaydeder; bu sınır sadece takılmayı keser.
+    timeout-minutes: 345
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+
+      # PDF metni pdftotext ile çıkarılıyor (Go kütüphanesi kelime arası boşlukları kaybediyor).
+      - name: Install pdftotext
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
+      - name: Build
+        run: go build -o guncelle ./crawler
+
+      - name: Run
+        # Betik başarısız istekleri kendisi tekrar dener. Site yapısı değişirse ya da
+        # hata oranı yüksekse non-zero döner; iş sessizce boş geçmez.
+        # -cache "": yerel geliştirme önbelleği CI'da kapalı (PDF'lerle onlarca GB eder).
+        # -kaynak tbmm: PDF arşivi (www5, ~76 GB) şimdilik kapalı; ayrıca ele alınacak.
+        run: ./guncelle -cache "" -kaynak tbmm -paralel 4 -sure-dk "${{ inputs.sure_dk || '300' }}" ${{ (github.event_name == 'schedule' || inputs.release) && '-release' || '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      # Betik yarıda hata verse bile o ana kadar indirilenler kaydedilsin.
+      - name: Commit
+        if: always()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          commit_message: "upd: tutanaklar güncellendi"
+          file_pattern: "data/"
