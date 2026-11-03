@@ -1,8 +1,8 @@
 # Go derleme çıktıları
 /guncelle
-/guncelle.exe
+/*.exe
 /crawler/crawler
-/crawler/crawler.exe
+/crawler/*.exe
 *~
 *.test
 *.out
