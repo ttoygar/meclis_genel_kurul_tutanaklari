@@ -22,6 +22,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -69,6 +70,7 @@ func run() int {
 		sureDk   = flag.Float64("sure-dk", 0, "N dakika sonra yeni işe başlama (0 = sınırsız)")
 		release  = flag.Bool("release", false, "kaynak dosyaları GitHub Release'e yükle (gh CLI)")
 		repo     = flag.String("repo", os.Getenv("GITHUB_REPOSITORY"), "release için owner/repo")
+		relHour  = flag.Int("release-saatlik", 700, "release için saatte en fazla GitHub API isteği (GITHUB_TOKEN sınırı 1.000)")
 		workers  = flag.Int("paralel", 2, "aynı anda işlenen birleşim sayısı")
 		kaynakF  = flag.String("kaynak", "tbmm,www5", "kullanılacak kaynaklar")
 		meclisF  = flag.String("meclis", "", "sadece bu meclis(ler), ör. TBMM,MM,CS (boş = hepsi)")
@@ -212,7 +214,7 @@ func run() int {
 
 	var rl *releaser
 	if *release {
-		if rl, err = newReleaser(*repo); err != nil {
+		if rl, err = newReleaser(*repo, *relHour); err != nil {
 			log.Print(err)
 			return 1
 		}
@@ -246,16 +248,24 @@ func run() int {
 				log.Print("Süre sınırına gelindi; kalanlar sonraki çalıştırmaya.")
 				return
 			}
+			if !j.wantText && rl.Stopped() {
+				continue // API sınırı: sadece release bekleyenler sonraki çalıştırmaya
+			}
 			jobCh <- j
 		}
 	}()
 	go func() { wg.Wait(); close(resCh) }()
 
-	done, failed := 0, 0
+	done, failed, postponed := 0, 0, 0
 	lastSave := time.Now()
 	for res := range resCh {
 		label := res.rec.label() + " " + res.row.Durum
-		if res.err != nil {
+		if errors.Is(res.err, errRateLimited) {
+			// Metin işi yapıldıysa kaydedilsin; release_durum değişmediği için yükleme
+			// sonraki çalıştırmada tekrar denenir.
+			postponed++
+			*manifest[res.rec.ID] = res.rec
+		} else if res.err != nil {
 			failed++
 			log.Printf("HATA %s: %v", label, res.err)
 			// Linkler yine de kaydedilsin; durum değişmediği için sonraki çalıştırmada tekrar denenir.
@@ -281,9 +291,9 @@ func run() int {
 		return 1
 	}
 
-	remaining := len(jobs) - done - failed
-	summary := fmt.Sprintf("İşlenen: %d, hatalı: %d, kalan: %d, toplam kayıt: %d, süre: %s",
-		done, failed, remaining, len(manifest), time.Since(started).Round(time.Second))
+	remaining := len(jobs) - done - failed - postponed
+	summary := fmt.Sprintf("İşlenen: %d, hatalı: %d, release ertelendi: %d, kalan: %d, toplam kayıt: %d, süre: %s",
+		done, failed, postponed, remaining, len(manifest), time.Since(started).Round(time.Second))
 	log.Print(summary)
 	if p := os.Getenv("GITHUB_STEP_SUMMARY"); p != "" {
 		if f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
@@ -403,6 +413,9 @@ func process(j job, rl *releaser, tmpDir string) (Record, error) {
 		}
 		if len(files) > 0 {
 			if err := rl.upload(row.Tag, row.TagTitle, files); err != nil {
+				if errors.Is(err, errRateLimited) && j.wantText {
+					rec.Durum = row.Durum // metin indi; sadece yükleme kaldı
+				}
 				return rec, err
 			}
 		}
