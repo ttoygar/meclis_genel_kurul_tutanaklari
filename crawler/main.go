@@ -165,12 +165,22 @@ func run() int {
 		row.apply(rec)
 	}
 	assignFilenames(manifest, byID)
+	// Release hedefi işler belirlenmeden bilinmeli: kayıt başka bir repoya (ör. fork)
+	// yüklenmişse bu repo için yüklenmemiş sayılır.
+	var rl *releaser
+	if *release {
+		if rl, err = newReleaser(*repo, *relHour); err != nil {
+			log.Print(err)
+			return 1
+		}
+		log.Printf("Release hedefi: %s", rl.repo)
+	}
 	var jobs []job
 	for _, row := range rows {
 		rec := manifest[row.ID]
 		wantText := rec.Durum != row.Durum ||
 			(rec.MetinKaynagi != "yok" && (rec.Dosya == "" || !fileExists(dataPath(rec.Dosya))))
-		wantRelease := *release && rec.ReleaseDurum != row.Durum
+		wantRelease := rl != nil && (rec.ReleaseDurum != row.Durum || rec.ReleaseRepo != rl.repo)
 		if wantText || wantRelease {
 			jobs = append(jobs, job{row: row, rec: *rec, wantText: wantText})
 		}
@@ -212,13 +222,6 @@ func run() int {
 		jobs = jobs[:*limit]
 	}
 
-	var rl *releaser
-	if *release {
-		if rl, err = newReleaser(*repo, *relHour); err != nil {
-			log.Print(err)
-			return 1
-		}
-	}
 	tmpDir, err := os.MkdirTemp("", "tutanak-")
 	if err != nil {
 		log.Print(err)
@@ -419,7 +422,7 @@ func process(j job, rl *releaser, tmpDir string) (Record, error) {
 				return rec, err
 			}
 		}
-		rec.ReleaseDurum = row.Durum
+		rec.ReleaseDurum, rec.ReleaseRepo = row.Durum, rl.repo
 	}
 	rec.Durum = row.Durum
 	return rec, nil

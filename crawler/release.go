@@ -27,6 +27,7 @@ var errRateLimited = errors.New("GitHub API sınırına gelindi, release yüklem
 // upload` her çağrıda release'i sorguluyor. İstekler saatte perHour ile sınırlanır; sınır
 // yine de aşılırsa yükleme bu çalıştırma için durur, kalanlar sonraki çalıştırmaya kalır.
 type releaser struct {
+	repo     string // owner/repo
 	repoArgs []string
 	mu       sync.Mutex
 	tags     map[string]bool
@@ -45,9 +46,14 @@ func newReleaser(repo string, perHour int) (*releaser, error) {
 		return nil, errors.New("-release için `gh` CLI gerekli")
 	}
 	rl := &releaser{tags: map[string]bool{}, tokens: releaseBurst, perSec: float64(max(1, perHour)) / 3600, lastRef: time.Now()}
-	if repo != "" {
-		rl.repoArgs = []string{"--repo", repo}
+	if repo == "" { // lokal: gh'nin varsayılan reposu
+		out, err := exec.Command("gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner").Output()
+		if err != nil || strings.TrimSpace(string(out)) == "" {
+			return nil, errors.New("release reposu bulunamadı; -repo owner/repo verin")
+		}
+		repo = strings.TrimSpace(string(out))
 	}
+	rl.repo, rl.repoArgs = repo, []string{"--repo", repo}
 	out, err := rl.gh("release", "list", "--limit", "5000", "--json", "tagName")
 	if err != nil {
 		return nil, err

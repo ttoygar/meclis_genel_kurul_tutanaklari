@@ -50,7 +50,7 @@ Bir günde aynı klasörde birden fazla birleşim varsa ilki `YYYY-MM-DD.txt`, d
 | `metin_kaynagi` | Metnin çıkarıldığı dosya: `html`, `docx` ya da `pdf`. `yok`: dosyada metin katmanı yok (taranmış görüntü). |
 | `html`, `docx`, `pdf`, `basilmis_pdf`, `gundem_pdf`, `eski_harfli_pdf` | Kaynak linkleri. `eski_harfli_pdf` 1920-28 tutanaklarının Osmanlıca baskısı. |
 | `wayback` | Dosya TBMM sunucusunda bulunamayıp Wayback Machine'den alındıysa `true`. |
-| `release_etiket` | Kaynak dosyaların bulunduğu release, ör. `kaynak-tbmm-d28-y5`, `kaynak-cs-t05`, `kaynak-mmb-d03-i01`. |
+| `release_etiket`, `release_repo` | Kaynak dosyaların bulunduğu release (ör. `kaynak-tbmm-d28-y5`) ve repo (`owner/repo`). Dosya adresi: `https://github.com/<release_repo>/releases/download/<release_etiket>/<dosya>`. Workflow kendi reposuna yüklenmemiş kayıtları yükler; fork'ta yüklenenler ana repoda yeniden yüklenir. |
 
 ## Kaynaklar ve yöntem
 
@@ -82,10 +82,9 @@ Kod [`crawler/`](crawler) klasöründe: `tbmm.go` yeni site, `www5.go` PDF arşi
 
 > 2020'deki ilk sürüm. Defter ve yardımcı dosyalar [`tutanaklar/archive/`](tutanaklar/archive) klasörüne taşındı; aşağıdaki kod eski adres kapandığı için artık çalışmıyor.
 
-Bu programın ve defterin amacı daha sonra çeşitli NLP ve görselleştirme projelerinde kullanılmak üzere TBMM Genel Oturum tutanaklarının indirilmesi ve kaydedilmesi işlemlerini göstermektir. 
+Bu programın ve defterin amacı daha sonra çeşitli NLP ve görselleştirme projelerinde kullanılmak üzere TBMM Genel Oturum tutanaklarının indirilmesi ve kaydedilmesi işlemlerini göstermektir.
 
-İndirilmiş tutanaklar oturumun gerçekleştiği günün tarihi ile adlandırılmış olarak __tutanaklar__ klasörünün içindedir.
-
+İndirilmiş tutanaklar oturumun gerçekleştiği günün tarihi ile adlandırılmış olarak **tutanaklar** klasörünün içindedir.
 
 ```python
 import requests
@@ -94,9 +93,7 @@ import time
 import random
 ```
 
-
 TBMM'nin tutanaklar sayfasından istediğimiz linkleri çekerek urls_1 listesine kaydettik. İki seviye inmemiz gerektiğinden, bu liste aracılığıyla bir alt seviyedeki linklere ulaşıp urls_dict sözlüğünü oluşturduk. Bu sözlüğü herhangi bir aksilik oluşması riskine karşılık "urls_dict.txt" dosyasına kaydettik.
-
 
 ```python
 ilk_hedef = requests.get("https://www.tbmm.gov.tr/tutanak/tutanaklar.htm").content
@@ -133,7 +130,6 @@ urls_yedek = urls_dict.copy()
 ```
 
 İşlemin yarıda kesilmesi riskine karşılık, "tamamlanan_urller.txt" adlı bir dosya oluşturarak işlemi tamamlanmış linkleri bu dosyaya kaydettik. İşlemin sekteye uğraması halinde bu dosyaya kaydedilmiş linkler kontrol edilip dosyada bulunmayan linkler işleme sokulabilir.
-
 
 ```python
 
@@ -174,9 +170,9 @@ print(f'{counter} adet sayfa indirildi ve kaydedildi.')
     3017 adet sayfa indirildi ve kaydedildi.
     
 
-Bundan sonrası için ayrı ayrı kaydedilmiş txt dosyalarının düzenlenmesi ve ayıklanması gerekli. 
+Bundan sonrası için ayrı ayrı kaydedilmiş txt dosyalarının düzenlenmesi ve ayıklanması gerekli.
 
 Düşünceler;
-* "urls_1" ve "urls_dict"i ayırmaya gerek olmayabilirdi. 
-* Markdown kısımlarının doldurulmasının sona bırakılmaması gerekir. 
-* Program bu haliyle yeni eklenen tutanakların veri tabanına eklenmesi için de kullanılabilir. 
+- "urls_1" ve "urls_dict"i ayırmaya gerek olmayabilirdi.
+- Markdown kısımlarının doldurulmasının sona bırakılmaması gerekir.
+- Program bu haliyle yeni eklenen tutanakların veri tabanına eklenmesi için de kullanılabilir.

@@ -50,19 +50,20 @@ type Record struct {
 	Wayback       bool   `json:"wayback"`         // en az bir dosya web.archive.org'dan alındı
 	ReleaseEtiket string `json:"release_etiket"`
 	ReleaseDurum  string `json:"release_durum"` // release'e yüklenen kaynakların durumu
+	ReleaseRepo   string `json:"release_repo"`  // kaynakların yüklendiği repo (owner/repo); fork ile ana repo ayrı tutulur
 }
 
 var csvHeader = []string{
 	"id", "meclis", "kaynak", "donem", "yasama_yili", "birlesim", "cilt", "tarih", "durum", "dosya",
 	"metin_kaynagi", "html", "docx", "pdf", "basilmis_pdf", "gundem_pdf", "eski_harfli_pdf",
-	"wayback", "release_etiket", "release_durum",
+	"wayback", "release_etiket", "release_durum", "release_repo",
 }
 
 func (r Record) csvRow() []string {
 	return []string{
 		r.ID, r.Meclis, r.Kaynak, strconv.Itoa(r.Donem), strconv.Itoa(r.YasamaYili), strconv.Itoa(r.Birlesim),
 		r.Cilt, r.Tarih, r.Durum, r.Dosya, r.MetinKaynagi, r.HTML, r.DOCX, r.PDF, r.BasilmisPDF,
-		r.GundemPDF, r.EskiHarfliPDF, strconv.FormatBool(r.Wayback), r.ReleaseEtiket, r.ReleaseDurum,
+		r.GundemPDF, r.EskiHarfliPDF, strconv.FormatBool(r.Wayback), r.ReleaseEtiket, r.ReleaseDurum, r.ReleaseRepo,
 	}
 }
 
